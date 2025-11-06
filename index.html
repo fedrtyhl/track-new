@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Site de Tracking – Version Nouvelle</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: #eef2f7;
+        color: #222;
+        text-align: center;
+        margin: 50px;
+    }
+    h1 {
+        color: #1a73e8;
+    }
+    button {
+        background-color: #1a73e8;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        margin: 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+    button:hover {
+        background-color: #155ab6;
+    }
+    #logs {
+        max-width: 640px;
+        margin: 40px auto;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 12px rgba(0,0,0,0.1);
+        text-align: left;
+        display: none;
+    }
+    #logList {
+        list-style: none;
+        padding: 0;
+    }
+    #logList li {
+        border-bottom: 1px solid #eee;
+        padding: 8px 0;
+        font-size: 14px;
+    }
+</style>
+</head>
+<body>
+<h1>Version Nouvelle – Site de Tracking</h1>
+<p>Ce site enregistre les interactions. Ouvrez la console (F12) pour voir les événements en direct.</p>
+<button onclick="trackEvent('Bouton rouge cliqué')">Bouton rouge</button>
+<button onclick="trackEvent('Bouton bleu cliqué')">Bouton bleu</button>
+<button onclick="toggleLogs()">Afficher / Cacher les logs</button>
+
+<div id="logs">
+    <h3>Historique des événements</h3>
+    <ul id="logList"></ul>
+</div>
+
+<script>
+    async function trackEvent(eventName) {
+        const timestamp = new Date().toISOString();
+        const page = window.location.pathname;
+        let ip = 'Inconnue';
+        try {
+            const res = await fetch('https://api.ipify.org?format=json');
+            const data = await res.json();
+            ip = data.ip;
+        } catch(e) {
+            console.warn('Impossible de récupérer l\'IP:', e);
+        }
+        console.log(`[TRACK] ${eventName} | Page: ${page} | IP: ${ip} | Heure: ${timestamp}`);
+
+        let logs = JSON.parse(localStorage.getItem('logsTracking')) || [];
+        logs.push({event: eventName, page, ip, timestamp});
+        if(logs.length > 20) logs.shift();
+        localStorage.setItem('logsTracking', JSON.stringify(logs));
+
+        updateLogList();
+    }
+
+    function updateLogList() {
+        const logs = JSON.parse(localStorage.getItem('logsTracking')) || [];
+        const logList = document.getElementById('logList');
+        logList.innerHTML = '';
+        for(const log of logs) {
+            const li = document.createElement('li');
+            li.textContent = `${log.event} | page: ${log.page} | IP: ${log.ip} | à ${log.timestamp}`;
+            logList.appendChild(li);
+        }
+    }
+
+    function toggleLogs() {
+        const logsDiv = document.getElementById('logs');
+        if(logsDiv.style.display === 'block') {
+            logsDiv.style.display = 'none';
+        } else {
+            updateLogList();
+            logsDiv.style.display = 'block';
+        }
+    }
+
+    window.onload = () => {
+        trackEvent('Chargement de la page');
+    }
+</script>
+</body>
+</html>
